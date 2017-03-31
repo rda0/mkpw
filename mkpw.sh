@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Author: Sven Mäder
+# Github: https://github.com/rda0/mkpw/blob/master/mkpw.sh
+
 ## hash algorithm variables
 
 # character set to use for passwords
