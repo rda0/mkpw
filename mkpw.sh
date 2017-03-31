@@ -69,10 +69,10 @@ if [ "$#" -eq 2 ]; then
 fi
 
 while [ $counter -lt $amount ]; do
-  password=$(< /dev/urandom tr -dc ${passwd_charset} | head -c"${passwd_len}"; echo)
+  passwd=$(< /dev/urandom tr -dc ${passwd_charset} | head -c"${passwd_len}")
   salt=$(< /dev/urandom tr -dc ${salt_charset} | head -c"${salt_len}")
-  echo -n ${password}
+  echo -n ${passwd}
   echo -n '   '
-  /usr/bin/mkpasswd -m ${hash_algorithm} -R "${rounds}" ${password} ${salt}
+  /usr/bin/mkpasswd -m ${hash_algorithm} -R "${rounds}" ${passwd} ${salt}
   let counter+=1
 done
