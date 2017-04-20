@@ -21,7 +21,7 @@ apt install whois
 ## Usage
 
 ```
-Usage: /home/maedersv/bin/mkpw [option] [length [amount]]
+Usage: mkpw [option] [length [amount]]
 
     Generates strong passwords suitable for linux logins.
 
