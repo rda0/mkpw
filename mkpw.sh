@@ -6,7 +6,7 @@
 ## hash algorithm variables
 
 # character set to use for passwords
-passwd_charset='_-`~!@#$%^&*()+={}[]|\;:'\''"<>,.?/a-zA-Z0-9'
+passwd_charset='\\\-`_~!@#$%^&*()+={}[]|;:"<>,.?/a-zA-Z0-9'\'
 # character set to use for salts (allowed charset = ./a-zA-Z0-9 )
 salt_charset='./a-zA-Z0-9'
 # hashing algorithm used (use: sha-256 | sha-512)
@@ -72,10 +72,10 @@ if [ "$#" -eq 2 ]; then
 fi
 
 while [ $counter -lt $amount ]; do
-  passwd=$(< /dev/urandom tr -dc ${passwd_charset} | head -c"${passwd_len}")
-  salt=$(< /dev/urandom tr -dc ${salt_charset} | head -c"${salt_len}")
-  echo -n ${passwd}
+  passwd=$(< /dev/urandom tr -dc "${passwd_charset}" | head -c"${passwd_len}")
+  salt=$(< /dev/urandom tr -dc "${salt_charset}" | head -c"${salt_len}")
+  echo -n "${passwd}"
   echo -n '   '
-  /usr/bin/mkpasswd -m ${hash_algorithm} -R "${rounds}" ${passwd} ${salt}
+  echo -n "${passwd}" | /usr/bin/mkpasswd -s -m "${hash_algorithm}" -R "${rounds}" -S "${salt}"
   let counter+=1
 done
