@@ -21,7 +21,7 @@ apt install whois
 ## Usage
 
 ```
-Usage: mkpw [option] [length [amount]]
+Usage: ./mkpw.sh [option] [length [amount]]
 
     Generates strong passwords suitable for linux logins.
 
@@ -48,8 +48,8 @@ Options:
     -m, --method TYPE
         Compute the password using the TYPE method.
         Possible values for TYPE:
-        des      standard 56 bit DES-based crypt(3)
-        md5      MD5
+        sha-512  SHA-512  (default)
         sha-256  SHA-256
-        sha-512  SHA-512
+        md5      MD5
+        des      standard 56 bit DES-based crypt(3)
 ```

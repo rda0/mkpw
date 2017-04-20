@@ -99,10 +99,10 @@ print_usage() {
   echo "    -m, --method TYPE"
   echo "        Compute the password using the TYPE method."
   echo "        Possible values for TYPE:"
-  echo "        des      standard 56 bit DES-based crypt(3)"
-  echo "        md5      MD5"
+  echo "        sha-512  SHA-512  (default)"
   echo "        sha-256  SHA-256"
-  echo "        sha-512  SHA-512"
+  echo "        md5      MD5"
+  echo "        des      standard 56 bit DES-based crypt(3)"
 }
 
 check_opt() {
