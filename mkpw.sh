@@ -5,8 +5,14 @@
 
 ## hash algorithm variables
 
-# character set to use for passwords
-passwd_charset='\\\-`_~!@#$%^&*()+={}[]|;:"<>,.?/a-zA-Z0-9'\'
+# character sets to use for passwords
+# escaping: '\\' --> '\', '\-' --> '-'
+charset_g='[:graph:]'
+charset_a='[:alnum:]'
+charset_p='[:print:]'
+charset_c='\-#,./:=?@[]^{}~a-zA-Z0-9'
+charset_d='\\\-`_~!@#$%^&*()+={}[]|;:"<>,.?/a-zA-Z0-9'\'
+passwd_charset=${charset_g}
 # character set to use for salts (allowed charset = ./a-zA-Z0-9 )
 salt_charset='./a-zA-Z0-9'
 # hashing algorithm used (use: sha-256 | sha-512)
@@ -27,24 +33,56 @@ amount=1
 passwd_len=32
 
 print_usage() { 
-  echo "Generates strong passwords suitable for linux logins."
-  echo -e "\nUsage: ${0} [length [amount]]\n" 
-  echo "- length: password length (default=32)"
-  echo "- amount: amount of passwords generated (default=1)"
-  echo -e "\nOutput: <cleartext-password>   <hashed-password>\n"
+  echo -e "Usage: ${0} [option] [length [amount]]" 
+  echo -e "\n    Generates strong passwords suitable for linux logins."
+  echo -e "\nOutput: <cleartext-password>   <hashed-password>"
+  echo -e "\nOptions:\n"
+  echo "    length"
+  echo "        password length (default=32)"
+  echo "    amount"
+  echo "        amount of passwords generated (default=1)"
+  echo "    -g, --graph"
+  echo "        use printable characters only (default)"
+  echo "    -a, --alnum"
+  echo "        use alphanumeric characters only"
+  echo "    -p, --print"
+  echo "        use printable characters including space"
+  echo "    -c, --custom"
+  echo "        use custom character set (ETH Zurich): $(echo -n ${charset_c} | sed 's/\\-/-/' | sed 's/\\\\/\\/')"
+  echo "    -d, --default"
+  echo "        use default character set: $(echo -n ${charset_d} | sed 's/\\-/-/' | sed 's/\\\\/\\/')"
+  echo "    -h, --help"
+  echo "        print this help message"
+}
+
+check_opt() {
+    if [ "${opt}" -eq 1 ]; then
+        echo -e "error: Invalid combination of options\n" >&2
+        print_usage
+        exit 1
+    fi
+}
+
+check_num() {
+    re='^[0-9]+$'
+    if ! [[ ${1} =~ $re ]] ; then
+        echo -e "error: Wrong option or not a number\n" >&2
+        print_usage
+        exit 1
+    fi
 }
 
 print_requirement() {
-  echo "Error: mkpasswd is not installed. To install run:"
-  echo -e "\n  apt install whois\n"
+  echo -e "error: mkpasswd is not installed. To install run:"
+  echo -e "\n    apt install whois\n"
 }
 
 print_passwd_insecure() {
-  echo "Warning: Using a too short password is insecure (recommended length: >= 16)"
+  echo -e "warning: Using a too short password is insecure (recommended length: >= 16)\n"
 }
 
 print_passwd_too_long() {
-  echo "Error: Password is too long (maximum length = 86)"
+  echo -e "error: Password is too long (maximum length = 86)"
 }
 
 if [ "$(which mkpasswd)" != "/usr/bin/mkpasswd" ]; then
@@ -52,23 +90,72 @@ if [ "$(which mkpasswd)" != "/usr/bin/mkpasswd" ]; then
   exit 1
 fi
 
-if [ "$#" -lt 0 ] || [ "$#" -gt 2 ]; then
+if [ "$#" -lt 0 ] || [ "$#" -gt 3 ]; then
   print_usage
   exit 1
 fi
 
-if [ "$#" -ge 1 ]; then
-  if [ "${1}" -lt "${passwd_min}" ]; then
-    print_passwd_insecure
-  elif [ "${1}" -gt "${passwd_max}" ]; then
-    print_passwd_too_long
-    exit 1
-  fi
-  passwd_len="${1}"
-fi
+opt=0
+num=0
 
-if [ "$#" -eq 2 ]; then
-  amount="${2}"
+while [[ $# -gt 0 ]]
+do
+key="$1"
+
+case $key in
+    -h|--help)
+        print_usage
+        exit 1
+        ;;
+    -g|--graph)
+        check_opt
+        passwd_charset=${charset_g}
+        opt=1
+        ;;
+    -a|--alnum)
+        check_opt
+        passwd_charset=${charset_a}
+        opt=1
+        ;;
+    -p|--print)
+        check_opt
+        passwd_charset=${charset_p}
+        opt=1
+        ;;
+    -c|--custom)
+        check_opt
+        passwd_charset=${charset_c}
+        opt=1
+        ;;
+    -d|--default)
+        check_opt
+        passwd_charset=${charset_d}
+        opt=1
+        ;;
+    *)
+        if [ ${num} -ge 2 ]; then
+            echo "Error: too many arguments" >&2
+            print_usage
+            exit 1
+        fi
+        check_num ${1}
+        if [ ${num} -eq 0 ]; then
+            passwd_len="${1}"
+        fi
+        if [ ${num} -eq 1 ]; then
+            amount="${1}"
+        fi
+        ((num++))
+        ;;
+esac
+shift # past argument or value
+done
+
+if [ "${passwd_len}" -lt "${passwd_min}" ]; then
+  print_passwd_insecure
+elif [ "${passwd_len}" -gt "${passwd_max}" ]; then
+  print_passwd_too_long
+  exit 1
 fi
 
 while [ $counter -lt $amount ]; do
