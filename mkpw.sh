@@ -48,13 +48,26 @@ salt_charset='./a-zA-Z0-9'
 # hashing algorithm used (use: sha-256 | sha-512)
 hash_algorithm='sha-512'
 # maximum password length (sha-256_max=43, sha-512_max=86)
-passwd_max=86
+passwd_max_sha_512=86
+passwd_max_sha_256=43
+passwd_max_md5=32
+passwd_max_des=8
+# default max passwd length
+passwd_max_sha=${passwd_max_sha_512}
 # minimum password length not showing insecure warning
 passwd_min=12
-# salt length (min=8, max=16)
-salt_len=16
+# salt length (sha: min=8, max=16,  md5: 8)
+salt_len_sha=16
+salt_len_md5=8
+salt_len_des=2
+# default salt len
+salt_len=${salt_len_sha}
 # number of rounds the password is hashed (min=1'000, max=999'999'999)
 rounds=10000
+# possible hashing algorithms
+methods='sha-512 sha-256 md5 des'
+# default method
+method='sha-512'
 
 ## loop variables
 
@@ -68,21 +81,28 @@ print_usage() {
   echo -e "\nOutput: <cleartext-password>   <hashed-password>"
   echo -e "\nOptions:\n"
   echo "    length"
-  echo "        password length (default=32)"
+  echo "        Password length (default=32)"
   echo "    amount"
-  echo "        amount of passwords generated (default=1)"
+  echo "        Amount of passwords generated (default=1)"
   echo "    -g, --graph"
-  echo "        use printable characters only (default)"
+  echo "        Use printable characters only (default)"
   echo "    -a, --alnum"
-  echo "        use alphanumeric characters only"
+  echo "        Use alphanumeric characters only"
   echo "    -p, --print"
-  echo "        use printable characters including space"
+  echo "        Use printable characters including space"
   echo "    -c, --custom"
-  echo "        use custom character set (ETH Zurich): $(echo -n ${charset_c} | sed 's/\\-/-/' | sed 's/\\\\/\\/')"
+  echo "        Use custom character set (ETH Zurich): $(echo -n ${charset_c} | sed 's/\\-/-/' | sed 's/\\\\/\\/')"
   echo "    -d, --default"
-  echo "        use default character set: $(echo -n ${charset_d} | sed 's/\\-/-/' | sed 's/\\\\/\\/')"
+  echo "        Use default character set: $(echo -n ${charset_d} | sed 's/\\-/-/' | sed 's/\\\\/\\/')"
   echo "    -h, --help"
-  echo "        print this help message"
+  echo "        Print this help message"
+  echo "    -m, --method TYPE"
+  echo "        Compute the password using the TYPE method."
+  echo "        Possible values for TYPE:"
+  echo "        des      standard 56 bit DES-based crypt(3)"
+  echo "        md5      MD5"
+  echo "        sha-256  SHA-256"
+  echo "        sha-512  SHA-512"
 }
 
 check_opt() {
@@ -112,7 +132,7 @@ print_passwd_insecure() {
 }
 
 print_passwd_too_long() {
-  echo -e "error: Password is too long (maximum length = 86)"
+  echo -e "error: Password is too long (maximum length = ${passwd_max})"
 }
 
 if [ "$(which mkpasswd)" != "/usr/bin/mkpasswd" ]; then
@@ -120,7 +140,7 @@ if [ "$(which mkpasswd)" != "/usr/bin/mkpasswd" ]; then
   exit 1
 fi
 
-if [ "$#" -lt 0 ] || [ "$#" -gt 3 ]; then
+if [ "$#" -lt 0 ] || [ "$#" -gt 5 ]; then
   print_usage
   exit 1
 fi
@@ -162,9 +182,26 @@ case $key in
         passwd_charset=${charset_d}
         opt=1
         ;;
+    -m|--method)
+        valid_method=0
+        for i in ${methods};
+        do
+            if [ "${i}" == "${2}" ]; then
+                valid_method=1
+            fi
+        done
+        if [ "${valid_method}" -eq 1 ]; then
+            method=${2}
+            shift
+        else
+            echo -e "Error: Invalid method\n" >&2
+            print_usage
+            exit 1
+        fi
+        ;;
     *)
         if [ ${num} -ge 2 ]; then
-            echo "Error: too many arguments" >&2
+            echo -e "Error: Too many arguments\n" >&2
             print_usage
             exit 1
         fi
@@ -181,12 +218,34 @@ esac
 shift # past argument or value
 done
 
+case ${method} in
+    sha-512)
+        salt_len=${salt_len_sha}
+        passwd_max=${passwd_max_sha_512}
+        ;;
+    sha-256)
+        salt_len=${salt_len_sha}
+        passwd_max=${passwd_max_sha_256}
+        ;;
+    md5)
+        salt_len=${salt_len_md5}
+        passwd_max=${passwd_max_md5}
+        ;;
+    des)
+        salt_len=${salt_len_des}
+        passwd_max=${passwd_max_des}
+        ;;
+esac
+
 if [ "${passwd_len}" -lt "${passwd_min}" ]; then
   print_passwd_insecure
-elif [ "${passwd_len}" -gt "${passwd_max}" ]; then
+fi
+if [ "${passwd_len}" -gt "${passwd_max}" ]; then
   print_passwd_too_long
   exit 1
 fi
+
+hash_algorithm=${method}
 
 while [ $counter -lt $amount ]; do
   passwd=$(< /dev/urandom tr -dc "${passwd_charset}" | head -c"${passwd_len}")
