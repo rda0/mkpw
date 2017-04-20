@@ -1,7 +1,36 @@
 #!/bin/bash
 
-# Author: Sven Mäder
-# Github: https://github.com/rda0/mkpw/blob/master/mkpw.sh
+# File:        mkpw.sh
+# Author:      Sven Mäder <maeder@phys.ethz.ch>, ETH Zurich, ISG D-PHYS
+# Date:        2017-04-20
+# Github:      https://github.com/rda0/mkpw/blob/master/mkpw.sh
+#
+# Description: Generates random secure passwords suitable for linux logins,
+#              prints out the creatext password and the corresponding
+#              `sha-512` hash. The hash includes a random salt and 10000
+#              rounds. All randomness is generated using `/dev/urandom`.
+#              Example: tty=/dev/ttyS will match all logins via a serial
+#                       console like /dev/ttyS0, /dev/ttyS1, etc.
+#
+# Requirement: `mkpasswd`, provided by the package whois, on debian based
+#              distributions run the following command to install it:
+#
+#              apt install whois
+#
+# Copyright 2017 Sven Mäder
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ## hash algorithm variables
 
@@ -12,6 +41,7 @@ charset_a='[:alnum:]'
 charset_p='[:print:]'
 charset_c='\-#,./:=?@[]^{}~a-zA-Z0-9'
 charset_d='\\\-`_~!@#$%^&*()+={}[]|;:"<>,.?/a-zA-Z0-9'\'
+# default charset
 passwd_charset=${charset_g}
 # character set to use for salts (allowed charset = ./a-zA-Z0-9 )
 salt_charset='./a-zA-Z0-9'
