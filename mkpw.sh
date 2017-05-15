@@ -41,6 +41,7 @@ charset_a='[:alnum:]'
 charset_p='[:print:]'
 charset_c='\-#,./:=?@[]^{}~a-zA-Z0-9'
 charset_d='\\\-`_~!@#$%^&*()+={}[]|;:"<>,.?/a-zA-Z0-9'\'
+charset_q='\\\-_~!@#$%^&*()+={}[]|;:<>,.?/a-zA-Z0-9'
 # default charset
 passwd_charset=${charset_g}
 # character set to use for salts (allowed charset = ./a-zA-Z0-9 )
@@ -94,6 +95,8 @@ print_usage() {
   echo "        Use custom character set (ETH Zurich): $(echo -n ${charset_c} | sed 's/\\-/-/' | sed 's/\\\\/\\/')"
   echo "    -d, --default"
   echo "        Use default character set: $(echo -n ${charset_d} | sed 's/\\-/-/' | sed 's/\\\\/\\/')"
+  echo "    -q, --no-quotes"
+  echo "        Use default character set: $(echo -n ${charset_q} | sed 's/\\-/-/' | sed 's/\\\\/\\/')"
   echo "    -h, --help"
   echo "        Print this help message"
   echo "    -m, --method TYPE"
@@ -180,6 +183,11 @@ case $key in
     -d|--default)
         check_opt
         passwd_charset=${charset_d}
+        opt=1
+        ;;
+    -q|--no-quotes)
+        check_opt
+        passwd_charset=${charset_q}
         opt=1
         ;;
     -m|--method)
