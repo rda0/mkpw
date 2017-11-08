@@ -3,7 +3,7 @@
 ## Description
 
 Generates random secure passwords suitable for linux logins,
-prints out the creatext password and the corresponding `sha-512` hash. 
+prints out the cleartext password and the corresponding `sha-512` hash. 
 The hash includes a random salt and `10000` rounds.
 All randomness is generated using `/dev/urandom`.
 
