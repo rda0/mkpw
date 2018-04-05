@@ -256,8 +256,8 @@ fi
 hash_algorithm=${method}
 
 while [ $counter -lt $amount ]; do
-  passwd=$(< /dev/urandom tr -dc "${passwd_charset}" | head -c"${passwd_len}")
-  salt=$(< /dev/urandom tr -dc "${salt_charset}" | head -c"${salt_len}")
+  passwd=$(head -c"${passwd_len}" < <(LC_CTYPE=C tr -dc "${passwd_charset}" < /dev/urandom))
+  salt=$(head -c"${salt_len}" < <(LC_CTYPE=C tr -dc "${salt_charset}" < /dev/urandom))
   echo -n "${passwd}"
   echo -n '   '
   echo -n "${passwd}" | /usr/bin/mkpasswd -s -m "${hash_algorithm}" -R "${rounds}" -S "${salt}"
