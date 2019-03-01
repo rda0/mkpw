@@ -2,7 +2,7 @@
 
 # File:        mkpw.sh
 # Author:      Sven Mäder <maeder@phys.ethz.ch>, ETH Zurich, ISG D-PHYS
-# Date:        2017-04-20
+# Date:        2019-03-01
 # Github:      https://github.com/rda0/mkpw/blob/master/mkpw.sh
 #
 # Description: Generates random secure passwords suitable for linux logins,
@@ -48,13 +48,8 @@ passwd_charset=${charset_g}
 salt_charset='./a-zA-Z0-9'
 # hashing algorithm used (use: sha-256 | sha-512)
 hash_algorithm='sha-512'
-# maximum password length (sha-256_max=43, sha-512_max=86)
-passwd_max_sha_512=86
-passwd_max_sha_256=43
-passwd_max_md5=32
+# maximum password length
 passwd_max_des=8
-# default max passwd length
-passwd_max_sha=${passwd_max_sha_512}
 # minimum password length not showing insecure warning
 passwd_min=12
 # salt length (sha: min=8, max=16,  md5: 8)
@@ -76,8 +71,8 @@ counter=0
 amount=1
 passwd_len=32
 
-print_usage() { 
-  echo -e "Usage: ${0} [option] [length [amount]]" 
+print_usage() {
+  echo -e "Usage: ${0} [option] [length [amount]]"
   echo -e "\n    Generates strong passwords suitable for linux logins."
   echo -e "\nOutput: <cleartext-password>   <hashed-password>"
   echo -e "\nOptions:\n"
@@ -229,15 +224,12 @@ done
 case ${method} in
     sha-512)
         salt_len=${salt_len_sha}
-        passwd_max=${passwd_max_sha_512}
         ;;
     sha-256)
         salt_len=${salt_len_sha}
-        passwd_max=${passwd_max_sha_256}
         ;;
     md5)
         salt_len=${salt_len_md5}
-        passwd_max=${passwd_max_md5}
         ;;
     des)
         salt_len=${salt_len_des}
@@ -248,7 +240,7 @@ esac
 if [ "${passwd_len}" -lt "${passwd_min}" ]; then
   print_passwd_insecure
 fi
-if [ "${passwd_len}" -gt "${passwd_max}" ]; then
+if [ ! -z "${passwd_max}" ] && [ "${passwd_len}" -gt "${passwd_max}" ]; then
   print_passwd_too_long
   exit 1
 fi
