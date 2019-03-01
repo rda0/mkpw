@@ -101,6 +101,8 @@ print_usage() {
   echo "        sha-256  SHA-256"
   echo "        md5      MD5"
   echo "        des      standard 56 bit DES-based crypt(3)"
+  echo "    -r, --rounds ROUNDS"
+  echo "        Compute the password using ROUNDS number of rounds (default=10000)."
 }
 
 check_opt() {
@@ -138,7 +140,7 @@ if [ "$(which mkpasswd)" != "/usr/bin/mkpasswd" ]; then
   exit 1
 fi
 
-if [ "$#" -lt 0 ] || [ "$#" -gt 5 ]; then
+if [ "$#" -lt 0 ] || [ "$#" -gt 7 ]; then
   print_usage
   exit 1
 fi
@@ -198,6 +200,18 @@ case $key in
             shift
         else
             echo -e "Error: Invalid method\n" >&2
+            print_usage
+            exit 1
+        fi
+        ;;
+    -r|--rounds)
+        valid_rounds='[0-9]'
+        if [[ ${2} =~ ${valid_rounds} ]] && [ ${2} -ge 1000 ] && [ ${2} -le 999999999 ]; then
+            rounds=${2}
+            shift
+        else
+            echo -e "Error: Invalid value for rounds\n" >&2
+            echo -e "Provide a numeric value between 1000 and 999999999\n" >&2
             print_usage
             exit 1
         fi
