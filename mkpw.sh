@@ -2,22 +2,20 @@
 
 # File:        mkpw.sh
 # Author:      Sven Mäder <maeder@phys.ethz.ch>, ETH Zurich, ISG D-PHYS
-# Date:        2019-03-01
+# Date:        2024-08-28
 # Github:      https://github.com/rda0/mkpw/blob/master/mkpw.sh
 #
 # Description: Generates random secure passwords suitable for linux logins,
-#              prints out the creatext password and the corresponding
-#              `sha-512` hash. The hash includes a random salt and 10000
-#              rounds. All randomness is generated using `/dev/urandom`.
-#              Example: tty=/dev/ttyS will match all logins via a serial
-#                       console like /dev/ttyS0, /dev/ttyS1, etc.
+#              prints out the creatext password and the corresponding hash.
+#              The hash includes a random salt and variable rounds.
+#              All randomness is generated using `/dev/urandom`.
 #
 # Requirement: `mkpasswd`, provided by the package whois, on debian based
 #              distributions run the following command to install it:
 #
 #              apt install whois
 #
-# Copyright 2017 Sven Mäder
+# Copyright 2024 Sven Mäder
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -46,30 +44,26 @@ charset_q='\\\-_~!@#$%^&*()+={}[]|;:<>,.?/a-zA-Z0-9'
 passwd_charset=${charset_g}
 # character set to use for salts (allowed charset = ./a-zA-Z0-9 )
 salt_charset='./a-zA-Z0-9'
-# hashing algorithm used (use: sha-256 | sha-512)
-hash_algorithm='sha-512'
-# maximum password length
-passwd_max_des=8
 # minimum password length not showing insecure warning
 passwd_min=12
-# salt length (sha: min=8, max=16,  md5: 8)
-salt_len_sha=16
-salt_len_md5=8
-salt_len_des=2
-# default salt len
-salt_len=${salt_len_sha}
-# number of rounds the password is hashed (min=1'000, max=999'999'999)
-rounds=10000
+# default password length
+passwd_len=32
+# default rounds (-1 == use defaults)
+rounds=-1
+# default salt_len (-1 == use defaults)
+salt_len=-1
 # possible hashing algorithms
-methods='sha-512 sha-256 md5 des'
+methods='yescrypt gost-yescrypt scrypt bcrypt bcrypt-a sha512crypt sha256crypt sunmd5 md5crypt bsdicrypt descrypt nt'
 # default method
-method='sha-512'
+method='yescrypt'
+# hash only (existing password)
+hash_only=0
 
 ## loop variables
-
+# loop counter
 counter=0
+# default number of passwords to generate
 amount=1
-passwd_len=32
 
 print_usage() {
   echo -e "Usage: ${0} [option] [length [amount]]"
@@ -97,12 +91,20 @@ print_usage() {
   echo "    -m, --method TYPE"
   echo "        Compute the password using the TYPE method."
   echo "        Possible values for TYPE:"
-  echo "        sha-512  SHA-512  (default)"
-  echo "        sha-256  SHA-256"
-  echo "        md5      MD5"
-  echo "        des      standard 56 bit DES-based crypt(3)"
+  echo "        yescrypt        Yescrypt  (default)"
+  echo "        gost-yescrypt   GOST Yescrypt"
+  echo "        scrypt          scrypt"
+  echo "        bcrypt          bcrypt"
+  echo '        bcrypt-a        bcrypt (obsolete $2a$ version)'
+  echo "        sha512crypt     SHA-512"
+  echo "        sha256crypt     SHA-256"
+  echo "        sunmd5          SunMD5"
+  echo "        md5crypt        MD5"
+  echo "        bsdicrypt       BSDI extended DES-based crypt(3)"
+  echo "        descrypt        standard 56 bit DES-based crypt(3)"
+  echo "        nt              NT-Hash"
   echo "    -r, --rounds ROUNDS"
-  echo "        Compute the password using ROUNDS number of rounds (default=10000)."
+  echo "        Compute the password using ROUNDS number of rounds (otherwise use default)."
 }
 
 check_opt() {
@@ -206,12 +208,12 @@ case $key in
         ;;
     -r|--rounds)
         valid_rounds='[0-9]'
-        if [[ ${2} =~ ${valid_rounds} ]] && [ ${2} -ge 1000 ] && [ ${2} -le 999999999 ]; then
+        if [[ ${2} =~ ${valid_rounds} ]] && [ ${2} -ge 0 ] && [ ${2} -le 999999999 ]; then
             rounds=${2}
             shift
         else
             echo -e "Error: Invalid value for rounds\n" >&2
-            echo -e "Provide a numeric value between 1000 and 999999999\n" >&2
+            echo -e "Provide a numeric value between 0 and 999999999\n" >&2
             print_usage
             exit 1
         fi
@@ -235,37 +237,69 @@ esac
 shift # past argument or value
 done
 
+# defaults for algorithms
 case ${method} in
-    sha-512)
-        salt_len=${salt_len_sha}
+    # for possible salt lengths see man crypt(5)
+    yescrypt)
+        # debian default rounds: 5
+        if [ "${rounds}" == "-1" ]; then
+            rounds=7
+        fi
         ;;
-    sha-256)
-        salt_len=${salt_len_sha}
+    sha512crypt)
+        salt_len=16
+        if [ "${rounds}" == "-1" ]; then
+            # debian default rounds: 5000
+            rounds=500000
+        fi
         ;;
-    md5)
-        salt_len=${salt_len_md5}
+    sha256crypt)
+        salt_len=16
+        if [ "${rounds}" == "-1" ]; then
+            rounds=500000
+        fi
         ;;
-    des)
-        salt_len=${salt_len_des}
-        passwd_max=${passwd_max_des}
+    md5crypt)
+        salt_len=8
+        rounds=-1
+        ;;
+    descrypt)
+        salt_len=2
+        passwd_max=8
+        rounds=-1
         ;;
 esac
 
-if [ "${passwd_len}" -lt "${passwd_min}" ]; then
-  print_passwd_insecure
-fi
-if [ ! -z "${passwd_max}" ] && [ "${passwd_len}" -gt "${passwd_max}" ]; then
-  print_passwd_too_long
-  exit 1
+# default uses no --rounds param and defaults of mkpasswd
+rounds_param=""
+
+if [ "${rounds}" != "-1" ]; then
+    rounds_param="--rounds=${rounds}"
 fi
 
-hash_algorithm=${method}
+# default uses no --salt param and defaults of mkpasswd
+salt_param=""
+
+if [ "${passwd_len}" -lt "${passwd_min}" ]; then
+    print_passwd_insecure
+fi
+
+if [ ! -z "${passwd_max}" ] && [ "${passwd_len}" -gt "${passwd_max}" ]; then
+    print_passwd_too_long
+    exit 1
+fi
 
 while [ $counter -lt $amount ]; do
-  passwd=$(head -c"${passwd_len}" < <(LC_CTYPE=C tr -dc "${passwd_charset}" < /dev/urandom))
-  salt=$(head -c"${salt_len}" < <(LC_CTYPE=C tr -dc "${salt_charset}" < /dev/urandom))
-  echo -n "${passwd}"
-  echo -n '   '
-  echo -n "${passwd}" | /usr/bin/mkpasswd -s -m "${hash_algorithm}" -R "${rounds}" -S "${salt}"
-  let counter+=1
+    passwd=$(head -c"${passwd_len}" < <(LC_CTYPE=C tr -dc "${passwd_charset}" < /dev/urandom))
+
+    if [ "${salt_len}" != "-1" ]; then
+        salt=$(head -c"${salt_len}" < <(LC_CTYPE=C tr -dc "${salt_charset}" < /dev/urandom))
+        salt_param="--salt=${salt}"
+    fi
+
+    echo -n "${passwd}"
+    echo -n '   '
+    echo -n "${passwd}" | /usr/bin/mkpasswd -s -m "${method}" "${rounds_param}" "${salt_param}"
+
+    let counter+=1
 done
