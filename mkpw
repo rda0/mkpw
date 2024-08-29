@@ -7,6 +7,7 @@
 #
 # Description: Generates random secure passwords suitable for linux logins,
 #              prints out the creatext password and the corresponding hash.
+#              Alternatively hashes input password.
 #
 # Requirement: `mkpasswd`, provided by the package whois, on debian based
 #              distributions run the following command to install it:
@@ -54,8 +55,9 @@ salt_len=-1
 methods='yescrypt gost-yescrypt scrypt bcrypt bcrypt-a sha512crypt sha256crypt sunmd5 md5crypt bsdicrypt descrypt nt'
 # default method
 method='yescrypt'
-# hash only (existing password)
-hash_only=0
+# hash input (provide existing password to hash)
+hash_input=0
+hash_input_stdin=0
 
 ## loop variables
 # loop counter
@@ -64,7 +66,7 @@ counter=0
 amount=1
 
 print_usage() {
-  echo -e "Usage: ${0} [option] [length [amount]]"
+  echo -e "Usage: ${0} [options] [length [amount]]"
   echo -e "\n    Generates strong passwords suitable for linux logins."
   echo -e "\nOutput: <cleartext-password>   <hashed-password>"
   echo -e "\nOptions:\n"
@@ -103,6 +105,10 @@ print_usage() {
   echo "        nt              NT-Hash"
   echo "    -r, --rounds ROUNDS"
   echo "        Compute the password using ROUNDS number of rounds (otherwise use default)."
+  echo "    -i, --hash-input"
+  echo "        Hash input password."
+  echo "    -s, --stdin"
+  echo "        Read input password from stdin (only with -i)."
 }
 
 check_opt() {
@@ -140,7 +146,7 @@ if [ "$(which mkpasswd)" != "/usr/bin/mkpasswd" ]; then
   exit 1
 fi
 
-if [ "$#" -lt 0 ] || [ "$#" -gt 7 ]; then
+if [ "$#" -lt 0 ] || [ "$#" -gt 9 ]; then
   print_usage
   exit 1
 fi
@@ -155,7 +161,7 @@ key="$1"
 case $key in
     -h|--help)
         print_usage
-        exit 1
+        exit 0
         ;;
     -g|--graph)
         check_opt
@@ -215,6 +221,12 @@ case $key in
             print_usage
             exit 1
         fi
+        ;;
+    -i|--hash-input)
+        hash_input=1
+        ;;
+    -s|--stdin)
+        hash_input_stdin=1
         ;;
     *)
         if [ ${num} -ge 2 ]; then
@@ -288,16 +300,52 @@ if [ ! -z "${passwd_max}" ] && [ "${passwd_len}" -gt "${passwd_max}" ]; then
 fi
 
 while [ $counter -lt $amount ]; do
-    passwd=$(head -c"${passwd_len}" < <(LC_CTYPE=C tr -dc "${passwd_charset}" < /dev/urandom))
-
     if [ "${salt_len}" != "-1" ]; then
         salt=$(head -c"${salt_len}" < <(LC_CTYPE=C tr -dc "${salt_charset}" < /dev/urandom))
         salt_param="--salt=${salt}"
     fi
 
-    echo -n "${passwd}"
-    echo -n '   '
-    echo -n "${passwd}" | /usr/bin/mkpasswd -s -m "${method}" "${rounds_param}" "${salt_param}"
+    if [ "${hash_input}" -eq 0 ]; then
+        # generate random password
+        passwd=$(head -c"${passwd_len}" < <(LC_CTYPE=C tr -dc "${passwd_charset}" < /dev/urandom))
+        echo -n "${passwd}"
+        echo -n '   '
+        if [ "${rounds_param}" != "" ] && [ "${salt_param}" != "" ]; then
+            echo -n "${passwd}" | /usr/bin/mkpasswd -s -m "${method}" "${rounds_param}" "${salt_param}"
+        elif [ "${rounds_param}" != "" ]; then
+            echo -n "${passwd}" | /usr/bin/mkpasswd -s -m "${method}" "${rounds_param}"
+        elif [ "${salt_param}" != "" ]; then
+            echo -n "${passwd}" | /usr/bin/mkpasswd -s -m "${method}" "${salt_param}"
+        else
+            echo -n "${passwd}" | /usr/bin/mkpasswd -s -m "${method}"
+        fi
+    else
+        amount=1
+        if [ "${hash_input_stdin}" -eq 1 ]; then
+            # hash password from stdin
+            passwd=$(cat)
+            if [ "${rounds_param}" != "" ] && [ "${salt_param}" != "" ]; then
+                echo -n "${passwd}" | /usr/bin/mkpasswd -s -m "${method}" "${rounds_param}" "${salt_param}"
+            elif [ "${rounds_param}" != "" ]; then
+                echo -n "${passwd}" | /usr/bin/mkpasswd -s -m "${method}" "${rounds_param}"
+            elif [ "${salt_param}" != "" ]; then
+                echo -n "${passwd}" | /usr/bin/mkpasswd -s -m "${method}" "${salt_param}"
+            else
+                echo -n "${passwd}" | /usr/bin/mkpasswd -s -m "${method}"
+            fi
+        else
+            # hash password from user input
+            if [ "${rounds_param}" != "" ] && [ "${salt_param}" != "" ]; then
+                /usr/bin/mkpasswd -m "${method}" "${rounds_param}" "${salt_param}"
+            elif [ "${rounds_param}" != "" ]; then
+                /usr/bin/mkpasswd -m "${method}" "${rounds_param}"
+            elif [ "${salt_param}" != "" ]; then
+                /usr/bin/mkpasswd -m "${method}" "${salt_param}"
+            else
+                /usr/bin/mkpasswd -m "${method}"
+            fi
+        fi
+    fi
 
     let counter+=1
 done
