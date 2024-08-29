@@ -158,7 +158,7 @@ while [[ $# -gt 0 ]]
 do
 key="$1"
 
-case $key in
+case ${key} in
     -h|--help)
         print_usage
         exit 0
@@ -212,7 +212,7 @@ case $key in
         ;;
     -r|--rounds)
         valid_rounds='[0-9]'
-        if [[ ${2} =~ ${valid_rounds} ]] && [ ${2} -ge 0 ] && [ ${2} -le 999999999 ]; then
+        if [[ "${2}" =~ ${valid_rounds} ]] && [ "${2}" -ge 0 ] && [ "${2}" -le 999999999 ]; then
             rounds=${2}
             shift
         else
@@ -234,7 +234,7 @@ case $key in
             print_usage
             exit 1
         fi
-        check_num ${1}
+        check_num "${1}"
         if [ ${num} -eq 0 ]; then
             passwd_len="${1}"
         fi
@@ -299,7 +299,7 @@ if [ ! -z "${passwd_max}" ] && [ "${passwd_len}" -gt "${passwd_max}" ]; then
     exit 1
 fi
 
-while [ $counter -lt $amount ]; do
+while [ "${counter}" -lt "${amount}" ]; do
     if [ "${salt_len}" != "-1" ]; then
         salt=$(head -c"${salt_len}" < <(LC_CTYPE=C tr -dc "${salt_charset}" < /dev/urandom))
         salt_param="--salt=${salt}"
@@ -347,5 +347,5 @@ while [ $counter -lt $amount ]; do
         fi
     fi
 
-    let counter+=1
+    ((counter+=1))
 done
