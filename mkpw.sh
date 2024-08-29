@@ -1,14 +1,12 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# File:        mkpw.sh
+# File:        mkpw
 # Author:      Sven Mäder <maeder@phys.ethz.ch>, ETH Zurich, ISG D-PHYS
-# Date:        2024-08-28
+# Date:        2024-08-29
 # Github:      https://github.com/rda0/mkpw/blob/master/mkpw.sh
 #
 # Description: Generates random secure passwords suitable for linux logins,
 #              prints out the creatext password and the corresponding hash.
-#              The hash includes a random salt and variable rounds.
-#              All randomness is generated using `/dev/urandom`.
 #
 # Requirement: `mkpasswd`, provided by the package whois, on debian based
 #              distributions run the following command to install it:
