@@ -36,7 +36,7 @@
 charset_g='[:graph:]'
 charset_a='[:alnum:]'
 charset_p='[:print:]'
-charset_c='\-#,./:=?@[]^{}~a-zA-Z0-9'
+charset_c='\-+#,./:=?!$@[]{}a-zA-Z0-9'
 charset_d='\\\-`_~!@#$%^&*()+={}[]|;:"<>,.?/a-zA-Z0-9'\'
 charset_q='\\\-_~!@#$%^&*()+={}[]|;:<>,.?/a-zA-Z0-9'
 # default charset
